@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg:      #F5F3EF;
+      --card:    #FFFFFF;
+      --primary: #1C2B20;
+      --accent:  #4A7C59;
+      --gold:    #C9A84C;
+      --sale:    #B03A2E;
+      --border:  #DDD8CF;
+      --text:    #2C2825;
+      --muted:   #7A7169;
+      --danger:  #c0392b;
+      --radius:  12px;
+      --shadow:  0 2px 16px rgba(28,43,32,.09);
+    }
+
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── LOCK SCREEN ── */
+    .lock-screen {
+      position: fixed; inset: 0; z-index: 1000;
+      background: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lock-box {
+      background: var(--card); border-radius: 18px;
+      padding: 2.5rem 2.2rem; width: min(380px, 92vw);
+      text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+    }
+    .lock-icon { font-size: 2.5rem; margin-bottom: .8rem; }
+    .lock-box h1 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--primary); margin-bottom: .3rem; }
+    .lock-box p  { color: var(--muted); font-size: .85rem; margin-bottom: 1.5rem; }
+
+    /* ── FORM ELEMENTS ── */
+    .field       { margin-bottom: 1.1rem; text-align: left; }
+    .field label { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .09em; margin-bottom: .4rem; }
+    .field input, .field textarea, .field select {
+      width: 100%; padding: .65rem .9rem;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: .92rem; color: var(--text);
+      background: var(--bg); transition: border-color .18s;
+      outline: none; resize: vertical;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); background: #fff; }
+    .field input[type="number"] { -moz-appearance: textfield; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+      font-family: 'Inter', sans-serif; font-weight: 600; font-size: .88rem;
+      padding: .65rem 1.4rem; border-radius: 8px; border: none; cursor: pointer;
+      transition: opacity .18s, transform .12s; text-decoration: none;
+    }
+    .btn:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--border); color: var(--text); }
+    .btn-danger    { background: var(--danger); color: #fff; }
+    .btn-gold      { background: var(--gold);   color: var(--primary); }
+    .btn-sm { padding: .4rem .85rem; font-size: .78rem; }
+    .btn-block { width: 100%; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--accent); color: var(--accent); }
+
+    .error-msg { color: var(--danger); font-size: .82rem; margin-top: .6rem; display: none; }
+    .error-msg.show { display: block; }
+    .success-msg { color: var(--accent); font-size: .82rem; margin-top: .6rem; display: none; }
+    .success-msg.show { display: block; }
+
+    /* ── ADMIN LAYOUT ── */
+    .admin-header {
+      background: var(--primary); padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between; height: 64px;
+    }
+    .admin-header h1 { font-family: 'DM Serif Display', serif; color: #fff; font-size: 1.3rem; }
+    .admin-header .header-actions { display: flex; gap: .8rem; align-items: center; }
+    .admin-header a { color: rgba(255,255,255,.7); font-size: .82rem; text-decoration: none; }
+    .admin-header a:hover { color: #fff; }
+
+    .admin-main { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: .25rem; border-bottom: 2px solid var(--border); margin-bottom: 2rem; overflow-x: auto; }
+    .tab-btn {
+      padding: .7rem 1.3rem; background: none; border: none; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: .88rem; font-weight: 500;
+      color: var(--muted); border-bottom: 2px solid transparent;
+      margin-bottom: -2px; white-space: nowrap; transition: color .18s, border-color .18s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── CARDS ── */
+    .admin-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem 1.6rem; margin-bottom: 1.2rem; box-shadow: var(--shadow);
+    }
+    .admin-card h3 { font-size: 1rem; font-weight: 600; color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+
+    /* ── PRODUCT LIST ── */
+    .product-list-item {
+      display: flex; align-items: center; gap: 1rem;
+      padding: .9rem 0; border-bottom: 1px solid var(--border);
+    }
+    .product-list-item:last-child { border-bottom: none; }
+    .pli-img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); flex-shrink: 0; }
+    .pli-info { flex: 1; min-width: 0; }
+    .pli-title { font-size: .88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pli-meta  { font-size: .76rem; color: var(--muted); margin-top: .2rem; }
+    .pli-actions { display: flex; gap: .5rem; flex-shrink: 0; align-items: center; }
+
+    /* ── TOGGLE SWITCH ── */
+    .toggle-wrap { display: flex; align-items: center; gap: .6rem; font-size: .82rem; color: var(--muted); }
+    .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0; background: var(--border);
+      border-radius: 20px; cursor: pointer; transition: background .2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 14px; height: 14px;
+      left: 3px; bottom: 3px; background: #fff; border-radius: 50%;
+      transition: transform .2s;
+    }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    /* ── GRID ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── BADGE ── */
+    .badge-vis { font-size: .68rem; font-weight: 700; padding: .2rem .55rem; border-radius: 50px; letter-spacing: .05em; }
+    .badge-vis.on  { background: #d1fae5; color: #065f46; }
+    .badge-vis.off { background: #fee2e2; color: #991b1b; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--primary); color: #fff; padding: .75rem 1.2rem;
+      border-radius: 8px; font-size: .85rem; z-index: 9999;
+      transform: translateY(80px); opacity: 0; transition: all .3s;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    .section-note { font-size: .8rem; color: var(--muted); line-height: 1.5; }
+    code { background: #f0ede8; padding: .15rem .4rem; border-radius: 4px; font-size: .8rem; font-family: monospace; color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div class="lock-screen" id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <h1>Admin Panel</h1>
+    <p>Enter your password to manage the shop</p>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="pw-input" placeholder="Enter password" autocomplete="current-password" />
+    </div>
+    <div class="error-msg" id="pw-error">Incorrect password. Try again.</div>
+    <button class="btn btn-primary btn-block" onclick="checkPassword()">Unlock</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL (hidden until unlocked) -->
+<div id="admin-wrap" style="display:none">
+  <div class="admin-header">
+    <h1>⚙ Admin Panel</h1>
+    <div class="header-actions">
+      <a href="index.html" target="_blank">View Shop ↗</a>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">Lock</button>
+    </div>
+  </div>
+
+  <div class="admin-main">
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('test')">🧪 Test Products</button>
+      <button class="tab-btn" onclick="switchTab('config')">⚙ Shop Settings</button>
+      <button class="tab-btn" onclick="switchTab('password')">🔑 Change Password</button>
+    </div>
+
+    <!-- TAB: TEST PRODUCTS -->
+    <div class="tab-pane active" id="tab-test">
+
+      <!-- ADD FORM -->
+      <div class="admin-card">
+        <h3>➕ Add a Test Design</h3>
+        <p class="section-note" style="margin-bottom:1rem">Add shirts here to show visitors on the main site before listing them on Etsy. Toggle "Show on site" to make them visible.</p>
+        <div class="two-col">
+          <div class="field">
+            <label>Shirt Title *</label>
+            <input type="text" id="tp-title" placeholder="e.g. Summer Vibes Tee" />
+          </div>
+          <div class="field">
+            <label>Image URL *</label>
+            <input type="url" id="tp-image" placeholder="https://i.imgur.com/example.jpg" />
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Price (USD) *</label>
+            <input type="number" id="tp-price" placeholder="24.99" step="0.01" min="0" />
+          </div>
+          <div class="field">
+            <label>Original Price (optional — for showing a discount)</label>
+            <input type="number" id="tp-original" placeholder="29.99" step="0.01" min="0" />
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Est. Min Shipping Days</label>
+            <input type="number" id="tp-min-ship" placeholder="7" min="1" />
+          </div>
+          <div class="field">
+            <label>Est. Max Shipping Days</label>
+            <input type="number" id="tp-max-ship" placeholder="14" min="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Description (optional)</label>
+          <textarea id="tp-desc" rows="2" placeholder="Short description of the shirt..."></textarea>
+        </div>
+        <div class="field">
+          <label>Private Notes (not shown to visitors)</label>
+          <input type="text" id="tp-notes" placeholder="e.g. Check if this color works..." />
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:.5rem">
+          <label class="toggle-wrap">
+            <span class="toggle"><input type="checkbox" id="tp-visible" checked /><span class="toggle-slider"></span></span>
+            Show on main site
+          </label>
+          <button class="btn btn-primary" onclick="addTestProduct()">Add Design</button>
+        </div>
+        <div class="success-msg" id="tp-success">✅ Design added! Visible on the main site.</div>
+        <div class="error-msg"   id="tp-error">Please fill in the required fields (title, image, price).</div>
+      </div>
+
+      <!-- PRODUCT LIST -->
+      <div class="admin-card">
+        <h3>📋 Your Test Designs</h3>
+        <div id="test-product-list">
+          <p class="section-note" style="text-align:center;padding:1.5rem">No test designs yet. Add one above!</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB: SHOP SETTINGS -->
+    <div class="tab-pane" id="tab-config">
+      <div class="admin-card">
+        <h3>🏪 Shop Display Settings</h3>
+        <p class="section-note" style="margin-bottom:1rem">These override what shows on your main site.</p>
+        <div class="two-col">
+          <div class="field">
+            <label>Shop Name</label>
+            <input type="text" id="cfg-name" placeholder="My Awesome Shop" />
+          </div>
+          <div class="field">
+            <label>Your Etsy Shop URL</label>
+            <input type="url" id="cfg-etsy-url" placeholder="https://www.etsy.com/shop/YourShop" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Hero Tagline</label>
+          <input type="text" id="cfg-hero-title" placeholder="Shirts Made for Every Story" />
+        </div>
+        <div class="field">
+          <label>Hero Subtext</label>
+          <input type="text" id="cfg-hero-sub" placeholder="Unique designs, high-quality prints..." />
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Min Shipping Days</label>
+            <input type="number" id="cfg-min-ship" placeholder="7" min="1" />
+          </div>
+          <div class="field">
+            <label>Max Shipping Days</label>
+            <input type="number" id="cfg-max-ship" placeholder="14" min="1" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="saveConfig()">Save Settings</button>
+        <div class="success-msg" id="cfg-success">✅ Settings saved!</div>
+      </div>
+
+      <div class="admin-card">
+        <h3>🤖 GitHub Action Setup (Auto-Sync with Etsy)</h3>
+        <p class="section-note">Your site automatically syncs with Etsy every 6 hours using a GitHub Action. To set it up:</p>
+        <ol style="margin:1rem 0 0 1.2rem;font-size:.85rem;line-height:2;color:var(--text)">
+          <li>Go to your GitHub repo → <strong>Settings → Secrets and variables → Actions</strong></li>
+          <li>Add secret <code>ETSY_API_KEY</code> — get this from <a href="https://www.etsy.com/developers/your-apps" target="_blank" style="color:var(--accent)">Etsy Developer Portal ↗</a></li>
+          <li>Add secret <code>ETSY_SHOP_ID</code> — find this in your Etsy shop URL or settings</li>
+          <li>Go to <strong>Actions → Fetch Etsy Products → Run workflow</strong> to sync now</li>
+        </ol>
+        <p class="section-note" style="margin-top:.8rem">✨ Every time a price changes, you add a new shirt, or Printify updates something on Etsy, the GitHub Action will automatically update your website within 6 hours — or you can trigger it manually anytime.</p>
+      </div>
+    </div>
+
+    <!-- TAB: CHANGE PASSWORD -->
+    <div class="tab-pane" id="tab-password">
+      <div class="admin-card" style="max-width:420px">
+        <h3>🔑 Change Password</h3>
+        <div class="field">
+          <label>Current Password</label>
+          <input type="password" id="pw-current" placeholder="Current password" />
+        </div>
+        <div class="field">
+          <label>New Password</label>
+          <input type="password" id="pw-new" placeholder="New password" />
+        </div>
+        <div class="field">
+          <label>Confirm New Password</label>
+          <input type="password" id="pw-confirm" placeholder="Confirm new password" />
+        </div>
+        <button class="btn btn-primary" onclick="changePassword()">Change Password</button>
+        <div class="success-msg" id="pw-success">✅ Password changed successfully!</div>
+        <div class="error-msg"   id="pw-change-error" id="pw-change-error"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   STORAGE KEYS
+================================================================ */
+const PASSWORD_KEY      = 'admin_password';
+const SHOP_CONFIG_KEY   = 'shop_config';
+const TEST_PRODUCTS_KEY = 'test_products';
+const DEFAULT_PASSWORD  = '1234';
+
+/* ================================================================
+   PASSWORD
+================================================================ */
+function getPassword() {
+  return localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
+}
+
+function checkPassword() {
+  const input = document.getElementById('pw-input').value;
+  if (input === getPassword()) {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('admin-wrap').style.display  = '';
+    document.getElementById('pw-error').classList.remove('show');
+    loadAdmin();
+  } else {
+    document.getElementById('pw-error').classList.add('show');
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+document.getElementById('pw-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPassword();
+});
+
+function logout() {
+  document.getElementById('lock-screen').style.display = '';
+  document.getElementById('admin-wrap').style.display  = 'none';
+  document.getElementById('pw-input').value = '';
+}
+
+function changePassword() {
+  const current  = document.getElementById('pw-current').value;
+  const newPw    = document.getElementById('pw-new').value;
+  const confirm  = document.getElementById('pw-confirm').value;
+  const errEl    = document.getElementById('pw-change-error');
+  const succEl   = document.getElementById('pw-success');
+  errEl.classList.remove('show'); succEl.classList.remove('show');
+
+  if (current !== getPassword()) { errEl.textContent = '❌ Current password is incorrect.'; errEl.classList.add('show'); return; }
+  if (!newPw)                    { errEl.textContent = '❌ New password cannot be empty.';  errEl.classList.add('show'); return; }
+  if (newPw !== confirm)         { errEl.textContent = '❌ Passwords do not match.';          errEl.classList.add('show'); return; }
+
+  localStorage.setItem(PASSWORD_KEY, newPw);
+  succEl.classList.add('show');
+  document.getElementById('pw-current').value = '';
+  document.getElementById('pw-new').value     = '';
+  document.getElementById('pw-confirm').value = '';
+}
+
+/* ================================================================
+   TABS
+================================================================ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    if (b.textContent.toLowerCase().includes(name === 'test' ? 'test' : name === 'config' ? 'settings' : 'password'))
+      b.classList.add('active');
+  });
+}
+
+/* ================================================================
+   TOAST
+================================================================ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ================================================================
+   TEST PRODUCTS
+================================================================ */
+function getTestProducts() {
+  try { return JSON.parse(localStorage.getItem(TEST_PRODUCTS_KEY)) || []; }
+  catch { return []; }
+}
+function saveTestProducts(products) {
+  localStorage.setItem(TEST_PRODUCTS_KEY, JSON.stringify(products));
+}
+
+function addTestProduct() {
+  const title  = document.getElementById('tp-title').value.trim();
+  const image  = document.getElementById('tp-image').value.trim();
+  const price  = parseFloat(document.getElementById('tp-price').value);
+  const orig   = parseFloat(document.getElementById('tp-original').value) || null;
+  const minS   = parseInt(document.getElementById('tp-min-ship').value)   || 7;
+  const maxS   = parseInt(document.getElementById('tp-max-ship').value)   || 14;
+  const desc   = document.getElementById('tp-desc').value.trim();
+  const notes  = document.getElementById('tp-notes').value.trim();
+  const vis    = document.getElementById('tp-visible').checked;
+
+  const errEl  = document.getElementById('tp-error');
+  const succEl = document.getElementById('tp-success');
+  errEl.classList.remove('show'); succEl.classList.remove('show');
+
+  if (!title || !image || isNaN(price)) {
+    errEl.classList.add('show'); return;
+  }
+
+  const products = getTestProducts();
+  products.push({
+    id: 'test_' + Date.now(),
+    title, imageUrl: image, price,
+    originalPrice: orig,
+    currency: 'USD',
+    description: desc,
+    notes,
+    minShippingDays: minS,
+    maxShippingDays: maxS,
+    visible: vis,
+    isTest: true,
+    createdAt: new Date().toISOString()
+  });
+  saveTestProducts(products);
+
+  succEl.textContent = vis ? '✅ Design added! Visible on the main site.' : '✅ Design added (hidden from visitors).';
+  succEl.classList.add('show');
+
+  // Reset form
+  ['tp-title','tp-image','tp-price','tp-original','tp-min-ship','tp-max-ship','tp-desc','tp-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('tp-visible').checked = true;
+
+  renderTestProductList();
+}
+
+function toggleTestProductVisibility(id) {
+  const products = getTestProducts();
+  const p = products.find(x => x.id === id);
+  if (p) { p.visible = !p.visible; saveTestProducts(products); renderTestProductList(); showToast(p.visible ? '✅ Design is now visible on site.' : '👁 Design hidden from visitors.'); }
+}
+
+function deleteTestProduct(id) {
+  if (!confirm('Delete this test design? This cannot be undone.')) return;
+  const products = getTestProducts().filter(x => x.id !== id);
+  saveTestProducts(products);
+  renderTestProductList();
+  showToast('🗑 Design deleted.');
+}
+
+function renderTestProductList() {
+  const products = getTestProducts();
+  const el = document.getElementById('test-product-list');
+  if (products.length === 0) {
+    el.innerHTML = '<p class="section-note" style="text-align:center;padding:1.5rem">No test designs yet. Add one above!</p>';
+    return;
+  }
+  el.innerHTML = products.map(p => `
+    <div class="product-list-item">
+      <img class="pli-img" src="${p.imageUrl}" alt="${p.title}" onerror="this.src='https://placehold.co/56x56/e8e0d8/7a7169?text=?'" />
+      <div class="pli-info">
+        <div class="pli-title">${p.title}</div>
+        <div class="pli-meta">
+          $${parseFloat(p.price).toFixed(2)} USD
+          ${p.originalPrice ? ` · Was $${parseFloat(p.originalPrice).toFixed(2)}` : ''}
+          · Ships ${p.minShippingDays || 7}–${p.maxShippingDays || 14} days
+          ${p.notes ? ` · <em>${p.notes}</em>` : ''}
+        </div>
+      </div>
+      <div class="pli-actions">
+        <span class="badge-vis ${p.visible ? 'on' : 'off'}">${p.visible ? 'Visible' : 'Hidden'}</span>
+        <button class="btn btn-outline btn-sm" onclick="toggleTestProductVisibility('${p.id}')">Toggle</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTestProduct('${p.id}')">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ================================================================
+   SHOP CONFIG
+================================================================ */
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem(SHOP_CONFIG_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveConfig() {
+  const cfg = {
+    shopName:       document.getElementById('cfg-name').value.trim()       || undefined,
+    etsyShopUrl:    document.getElementById('cfg-etsy-url').value.trim()   || undefined,
+    heroTitle:      document.getElementById('cfg-hero-title').value.trim() || undefined,
+    heroSub:        document.getElementById('cfg-hero-sub').value.trim()   || undefined,
+    minShippingDays: parseInt(document.getElementById('cfg-min-ship').value) || 7,
+    maxShippingDays: parseInt(document.getElementById('cfg-max-ship').value) || 14,
+  };
+  localStorage.setItem(SHOP_CONFIG_KEY, JSON.stringify(cfg));
+  document.getElementById('cfg-success').classList.add('show');
+  setTimeout(() => document.getElementById('cfg-success').classList.remove('show'), 3000);
+  showToast('✅ Settings saved!');
+}
+
+function loadConfig() {
+  const cfg = getConfig();
+  if (cfg.shopName)    document.getElementById('cfg-name').value       = cfg.shopName;
+  if (cfg.etsyShopUrl) document.getElementById('cfg-etsy-url').value   = cfg.etsyShopUrl;
+  if (cfg.heroTitle)   document.getElementById('cfg-hero-title').value = cfg.heroTitle;
+  if (cfg.heroSub)     document.getElementById('cfg-hero-sub').value   = cfg.heroSub;
+  if (cfg.minShippingDays) document.getElementById('cfg-min-ship').value = cfg.minShippingDays;
+  if (cfg.maxShippingDays) document.getElementById('cfg-max-ship').value = cfg.maxShippingDays;
+}
+
+/* ================================================================
+   INIT
+================================================================ */
+function loadAdmin() {
+  renderTestProductList();
+  loadConfig();
+}
+</script>
+</body>
+</html>
