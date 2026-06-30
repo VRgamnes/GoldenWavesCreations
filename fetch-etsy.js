@@ -5,15 +5,21 @@
 const https = require('https');
 const fs    = require('fs');
 
-const API_KEY = process.env.ETSY_API_KEY;
-const SHOP_ID = process.env.ETSY_SHOP_ID;
+const API_KEY       = process.env.ETSY_API_KEY;
+const SHARED_SECRET  = process.env.ETSY_SHARED_SECRET;
+const SHOP_ID        = process.env.ETSY_SHOP_ID;
 
-if (!API_KEY) { console.error('Missing ETSY_API_KEY'); process.exit(1); }
-if (!SHOP_ID) { console.error('Missing ETSY_SHOP_ID'); process.exit(1); }
+if (!API_KEY)      { console.error('Missing ETSY_API_KEY'); process.exit(1); }
+if (!SHARED_SECRET){ console.error('Missing ETSY_SHARED_SECRET'); process.exit(1); }
+if (!SHOP_ID)       { console.error('Missing ETSY_SHOP_ID'); process.exit(1); }
+
+// Etsy requires BOTH the keystring and shared secret in the x-api-key header,
+// joined by a colon, like: keystring:sharedsecret
+const X_API_KEY_HEADER = `${API_KEY}:${SHARED_SECRET}`;
 
 function get(url) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { 'x-api-key': API_KEY } }, res => {
+    const req = https.get(url, { headers: { 'x-api-key': X_API_KEY_HEADER } }, res => {
       let body = '';
       res.on('data', chunk => body += chunk);
       res.on('end', () => {
