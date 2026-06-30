@@ -23,6 +23,7 @@ jobs:
       - name: Fetch products from Etsy
         env:
           ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          ETSY_SHARED_SECRET: ${{ secrets.ETSY_SHARED_SECRET }}
           ETSY_SHOP_ID: ${{ secrets.ETSY_SHOP_ID }}
         run: node fetch-etsy.js
 
