@@ -43,7 +43,7 @@ async function fetchListings() {
   let all = [], offset = 0;
   while (true) {
     const url = `https://openapi.etsy.com/v3/application/shops/${SHOP_ID}/listings/active`
-      + `?includes[]=images&includes[]=shipping_profile&limit=100&offset=${offset}`;
+      + `?includes[]=Images&includes[]=Shipping&limit=100&offset=${offset}`;
     const data = await get(url);
     const results = data.results || [];
     all = all.concat(results);
@@ -61,11 +61,20 @@ async function fetchShop() {
 function transformListing(listing) {
   const currentPrice  = parsePrice(listing.price);
   const originalPrice = parsePrice(listing.non_discounted_price);
-  const images = (listing.images || []).map(i => i.url_570xN || i.url_fullxfull || '');
+
+  // Images can come back under different shapes depending on the includes
+  // response — check the common ones.
+  let imagesRaw = listing.images || listing.Images || [];
+  if (!Array.isArray(imagesRaw)) imagesRaw = [];
+  const images = imagesRaw
+    .map(i => i.url_570xN || i.url_fullxfull || i.url_170x170 || i.url_75x75 || '')
+    .filter(Boolean);
+
   let minShip = 7, maxShip = 14;
-  if (listing.shipping_profile) {
-    minShip = (listing.shipping_profile.min_processing_days || 3) + 3;
-    maxShip = (listing.shipping_profile.max_processing_days || 7) + 7;
+  const sp = listing.shipping_profile || listing.Shipping || listing.shipping;
+  if (sp) {
+    minShip = (sp.min_processing_days || sp.processing_min || 3) + 3;
+    maxShip = (sp.max_processing_days || sp.processing_max || 7) + 7;
   }
   return {
     id:              listing.listing_id,
@@ -91,6 +100,10 @@ async function main() {
   console.log('Fetching Etsy listings for shop ID:', SHOP_ID);
 
   const listings = await fetchListings();
+  if (listings[0]) {
+    console.log('Sample listing keys:', Object.keys(listings[0]));
+    console.log('Sample images field:', JSON.stringify(listings[0].images || listings[0].Images || 'NONE').slice(0, 300));
+  }
   const shop = await fetchShop();
   const products = listings.map(transformListing);
 
